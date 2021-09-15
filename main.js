@@ -17,6 +17,10 @@ app.on('/', (req, res) => {
 })
 
 app.on('*', function(req, res) {
+  if (!req.path) {
+    res.file('www/index.gemini')
+    return
+  }
   const pathParts = req.path.split('/')
   return new Promise((resolve, reject) => {
     //console.log(req.path)
