@@ -70,6 +70,7 @@ app.on('*', function(req, res) {
             let reader = new Readability(doc.window.document);
             let article = reader.parse()
             if (article !== null) {
+              console.log('Article parse complete')
               //console.log('Article:', article)
               if (res2.statusCode == 200) {
                 res.data(geminify(article, reqInfo), mimeType='text/gemini')
