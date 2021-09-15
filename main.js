@@ -5,11 +5,12 @@ const { JSDOM } = require('jsdom')
 const http = require('http')
 const https = require('https')
 
-const app = gemini({cert: fs.readFileSync('cert.pem'),
-key: fs.readFileSync('key.pem')})
-
 const geminify = require('./geminify.js')
 const common = require('./common.js')
+const config = require('./config.js')
+
+const app = gemini({cert: fs.readFileSync(config.cert),
+key: fs.readFileSync(config.key)})
 
 app.on('/', (req, res) => {
   res.file('www/index.gemini')
@@ -35,7 +36,10 @@ app.on('*', function(req, res) {
         port: port,
         path: '/' + path,
         method: 'GET',
-        encoding: null
+        encoding: null,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36'
+        }
       }
 
       const req2 = (scheme == "https" ? https : http).request(options, res2 => {

@@ -1,4 +1,4 @@
-
+const config = require('./config.js')
 
 function parseURL (raw, req) {
   if (raw.startsWith('/')) {
@@ -17,7 +17,7 @@ function getImageSrc (img, req) {
 }
 
 module.exports = {
-  host: 'gemini://localhost/proxy/',
+  host: 'gemini://' + config.host + '/proxy/',
   parseURL: parseURL,
   getImageSrc: getImageSrc
 }
