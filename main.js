@@ -9,6 +9,8 @@ const geminify = require('./geminify.js')
 const common = require('./common.js')
 const config = require('./config.js')
 
+const maxPageSize = config.sizelimit || 100000 // 100KB default
+
 const app = gemini({cert: fs.readFileSync(config.cert),
 key: fs.readFileSync(config.key)})
 
@@ -48,13 +50,36 @@ app.on('*', function(req, res) {
 
       const req2 = (scheme == "https" ? https : http).request(options, res2 => {
         //console.log(res2.headers['content-type'])
+        //console.log(res2.headers['content-length'])
         //console.log(`statusCode: ${res2.statusCode}`)
 
+        let aborted = false
+
+        if (typeof res2.headers['content-length'] === 'string' && res2.headers['content-length'] > maxPageSize) {
+          res.data("# File size greater than limit\n(Limit: " + (maxPageSize / 1000) + " KB)", mimeType='text/gemini')
+          console.log('Content-length header over limit')
+          resolve()
+          req2.abort()
+          aborted = true
+        }
+
         let data = []
+        let totalLength = 0
         res2.on('data', chunk => {
+          //console.log(chunk.length, totalLength, res2.headers)
+          totalLength += chunk.length
+          if (totalLength > maxPageSize) {
+            res.data("# Server sent too much data\n(Limit: " + (maxPageSize / 1000) + " KB)", mimeType='text/gemini')
+            console.log('Server sent too much data')
+            resolve()
+            req2.abort()
+            aborted = true
+            return
+          }
           data.push(chunk)
         })
         res2.on('end', _ => {
+          if (aborted) return
           console.log('Got response')
           const buffer = Buffer.concat(data)
           //console.log(buffer.toString())
