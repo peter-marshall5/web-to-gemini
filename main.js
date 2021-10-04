@@ -24,6 +24,11 @@ app.on('*', function(req, res) {
     return
   }
   const pathParts = req.path.split('/')
+  if (pathParts.length < 4) {
+    res.data("# Malformed request", mimeType='text/gemini')
+    return
+  }
+
   return new Promise((resolve, reject) => {
     //console.log(req.path)
     if (req.path.startsWith('/proxy/')) {
