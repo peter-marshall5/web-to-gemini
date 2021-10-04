@@ -147,4 +147,4 @@ app.on('*', function(req, res) {
 
 app.listen(() => {
   console.log("Started server")
-});
+}, config.port);
