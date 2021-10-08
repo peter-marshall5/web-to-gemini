@@ -1,6 +1,7 @@
 const { JSDOM } = require('jsdom')
 
 const common = require('./common.js')
+const parseEntity = require('./entityparser.js')
 
 let bold = false
 let italics = false
@@ -33,15 +34,15 @@ function endsWithWhitespace (text) {
 }
 
 function startsWithWhitespace (text) {
-  return text.startsWith('\n') || text.startsWith(' ')
+  return parseEntity(text).startsWith('\n') || text.startsWith(' ')
 }
 
 function oneLine (text) {
-  return text.replace(/\n/g, '').replace(/[\ ]+/g, ' ').replace(/^\s/, '').replace(/\s$/, '')
+  return parseEntity(text).replace(/\n/g, '').replace(/[\ ]+/g, ' ').replace(/^\s/, '').replace(/\s$/, '')
 }
 
 function removeWhitespace (text) {
-  return ((startsWithWhitespace(text) && !newline) ? ' ' : '') + text.replace(/^[\s]+/, '').replace(/[\s]+$/, '').replace(/[\n]+/g, '\n').replace(/[\s]+/g, ' ').replace(/\t/g, '') + (endsWithWhitespace(text) ? ' ' : '')
+  return ((startsWithWhitespace(text) && !newline) ? ' ' : '') + parseEntity(text).replace(/^[\s]+/, '').replace(/[\s]+$/, '').replace(/[\n]+/g, '\n').replace(/[\s]+/g, ' ').replace(/\t/g, '') + (endsWithWhitespace(text) ? ' ' : '')
 }
 
 function getLinkText (link) {
