@@ -41,7 +41,7 @@ function oneLine (text) {
 }
 
 function removeWhitespace (text) {
-  return (startsWithWhitespace(text) ? ' ' : '') + text.replace(/[\ ]+/g, ' ').replace(/[\n]+/g, '\n').replace(/\t/g, '').replace(/^\n/, '').replace(/\s$/, '').replace(/\n$/, '').replace(/\s$/, '') + (endsWithWhitespace(text) ? ' ' : '')
+  return ((startsWithWhitespace(text) && !newline) ? ' ' : '') + text.replace(/^[\s]+/, '').replace(/[\s]+$/, '').replace(/[\n]+/g, '\n').replace(/[\s]+/g, ' ').replace(/\t/g, '') + (endsWithWhitespace(text) ? ' ' : '')
 }
 
 function getLinkText (link) {
@@ -95,7 +95,7 @@ function analyzePage (page, req) {
     break
     case 'LI':
     if (isText(page.innerText)) {
-      console.log('li', page)
+      // console.log('li', page)
       if (!newline) result += '\n'
       result += addBullets(page.innerText)
       newline = true
@@ -104,18 +104,21 @@ function analyzePage (page, req) {
     case 'H1':
     case 'H2':
     case 'H3':
-    if (page.childNodes[0] && isText(page.childNodes[0].textContent)) {
+    if (page.children.length == 0 &&
+      page.childNodes[0] && isText(page.childNodes[0].textContent)) {
       if (!newline) result += '\n'
       if (isText(page.childNodes[0].textContent)) result += addHeading(page.childNodes[0].textContent)
       newline = true
+      break
     }
-    break
     case 'CODE':
     case 'PRE':
+    if (page.children.length == 0) {
     if (!newline) result += '\n'
-    result += addCode(page.innerHTML || '')
-    newline = true
-    break
+      result += addCode(page.innerHTML || '')
+      newline = true
+      break
+    }
     default:
     for (let i = 0; i < page.childNodes.length; i++) {
       result += analyzePage(page.childNodes[i], req)
