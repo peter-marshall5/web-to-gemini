@@ -48,6 +48,7 @@ function removeWhitespace (text) {
 function getLinkText (link) {
   if (link.children[0] && link.children[0].nodeName == 'IMG') return link.children[0].alt
   if (!link.children[0]) return link.innerHTML
+  if (link.textContent) return link.textContent
   if (link.childNodes[0] && link.childNodes[0].nodeValue) return link.childNodes[0].nodeValue
   return
 }
