@@ -9,6 +9,8 @@ const geminify = require('./geminify.js')
 const common = require('./common.js')
 const config = require('./config.js')
 
+const messages = require('./messages.js')
+
 const maxPageSize = config.sizelimit || 100000 // 100KB default
 
 const app = gemini({cert: fs.readFileSync(config.cert),
@@ -25,7 +27,7 @@ app.on('*', function(req, res) {
   }
   const pathParts = req.path.split('/')
   if (pathParts.length < 4) {
-    res.data("# Malformed request", mimeType='text/gemini')
+    res.data(messages.malformed, mimeType='text/gemini')
     return
   }
 
@@ -41,7 +43,7 @@ app.on('*', function(req, res) {
       const reqInfo = {host: common.host, scheme: scheme, hostname: unescape(pathParts[3].slice(1))}
 
       if (hostname == 'localhost' || hostname.startsWith('192.168') || hostname.startsWith('10.0')) {
-        res.data('# Denied\nInternal address requests are not allowed.', mimeType='text/gemini')
+        res.data(messages.internalDisallowed, mimeType='text/gemini')
         resolve()
         return
       }
@@ -67,7 +69,7 @@ app.on('*', function(req, res) {
         let aborted = false
 
         if (typeof res2.headers['content-length'] === 'string' && res2.headers['content-length'] > maxPageSize) {
-          res.data("# File size greater than limit\n(Limit: " + (maxPageSize / 1000) + " KB)", mimeType='text/gemini')
+          res.data(messages.tooLarge[0] + (maxPageSize / 1000) + messages.tooLarge[1], mimeType='text/gemini')
           console.log('Content-length header over limit')
           resolve()
           req2.abort()
@@ -80,7 +82,7 @@ app.on('*', function(req, res) {
           //console.log(chunk.length, totalLength, res2.headers)
           totalLength += chunk.length
           if (totalLength > maxPageSize) {
-            res.data("# Server sent too much data\n(Limit: " + (maxPageSize / 1000) + " KB)", mimeType='text/gemini')
+            res.data(messages.tooMuchData[0] + (maxPageSize / 1000) + messages.tooMuchData[1], mimeType='text/gemini')
             console.log('Server sent too much data')
             resolve()
             req2.abort()
@@ -96,9 +98,9 @@ app.on('*', function(req, res) {
           //console.log(buffer.toString())
           if (res2.statusCode >= 300 && res2.statusCode < 400) {
             if (res2.headers.location) {
-              res.data('# Redirect (code ' + res2.statusCode + ')\n=> ' + common.parseURL(res2.headers.location, reqInfo) + ' ' + res2.headers.location, mimeType='text/gemini')
+              res.data(messages.redirect[0] + res2.statusCode + messages.redirect[1] + '\n=> ' + common.parseURL(res2.headers.location, reqInfo) + ' ' + res2.headers.location, mimeType='text/gemini')
             } else {
-              res.data('# Redirect (code ' + res2.statusCode + ')\n(Server did not indicate a URL)', mimeType='text/gemini')
+              res.data(messages.redirect[0] + '\n' + res2.statusCode + messages.redirect[1] + messages.redirect[2], mimeType='text/gemini')
             }
             resolve()
           } else if (res2.headers['content-type'] && res2.headers['content-type'].startsWith('text/html') || !res2.headers['content-type']) {
@@ -111,16 +113,16 @@ app.on('*', function(req, res) {
               if (res2.statusCode == 200) {
                 res.data(geminify(article, reqInfo), mimeType='text/gemini')
               } else {
-                res.data('(Server returned code ' + res2.statusCode + ')\n' + geminify(article, reqInfo), mimeType='text/gemini')
+                res.data('(' + messages.returnedCode + res2.statusCode + ')\n' + geminify(article, reqInfo), mimeType='text/gemini')
               }
               console.log('Returned response')
             } else {
-              res.data('# Error parsing HTML\n(Server returned code ' + res2.statusCode + ')', mimeType='text/gemini')
+              res.data(messages.parseError + '\n(' + messages.returnedCode + res2.statusCode + ')', mimeType='text/gemini')
               console.log('Error parsing HTML')
             }
             resolve()
           } else if (res2.statusCode != 200) {
-            res.data('# Error\n(Server returned code ' + res2.statusCode + ')')
+            res.data(messages.reqError + '\n(' + messages.returnedCode + res2.statusCode + ')')
             resolve()
           } else {
             console.log(res2.headers['content-type'])
@@ -134,7 +136,7 @@ app.on('*', function(req, res) {
 
       req2.on('error', error => {
         console.log(error)
-        res.data('# Request failed\n' + error, mimeType='text/gemini')
+        res.data(messages.reqError + '\n' + error, mimeType='text/gemini')
         resolve()
       })
 
