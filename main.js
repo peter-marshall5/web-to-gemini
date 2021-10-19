@@ -40,6 +40,12 @@ app.on('*', function(req, res) {
 
       const reqInfo = {host: common.host, scheme: scheme, hostname: unescape(pathParts[3].slice(1))}
 
+      if (hostname == 'localhost' || hostname.startsWith('192.168') || hostname.startsWith('10.0')) {
+        res.data('# Denied\nInternal address requests are not allowed.', mimeType='text/gemini')
+        resolve()
+        return
+      }
+
       console.log('Requested', hostname + ':' + port + '/' + path)
 
       const options = {
