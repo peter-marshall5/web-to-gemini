@@ -7,6 +7,7 @@ const https = require('https')
 
 const geminify = require('./geminify.js')
 const common = require('./common.js')
+const stats = require('./stats.js')
 const config = require('./config.js')
 
 const messages = require('./messages.js')
@@ -32,7 +33,6 @@ app.on('*', function(req, res) {
   }
 
   return new Promise((resolve, reject) => {
-    //console.log(req.path)
     if (req.path.startsWith('/proxy/')) {
       const scheme = pathParts[2]
       const hostnameParts = unescape(pathParts[3].slice(1)).split(':')
@@ -49,6 +49,7 @@ app.on('*', function(req, res) {
       }
 
       console.log('Requested', hostname + ':' + port + '/' + path)
+      const startTime = process.hrtime()
 
       const options = {
         hostname: hostname,
@@ -62,9 +63,8 @@ app.on('*', function(req, res) {
       }
 
       const req2 = (scheme == "https" ? https : http).request(options, res2 => {
-        //console.log(res2.headers['content-type'])
-        //console.log(res2.headers['content-length'])
-        //console.log(`statusCode: ${res2.statusCode}`)
+        const reqCreateTime = process.hrtime(startTime)
+        const responseTimeStart = process.hrtime()
 
         let aborted = false
 
@@ -94,6 +94,9 @@ app.on('*', function(req, res) {
         res2.on('end', _ => {
           if (aborted) return
           console.log('Got response')
+          const responseTime = process.hrtime(responseTimeStart)
+          const httpTime = process.hrtime(startTime)
+          const domParseTimeStart = process.hrtime()
           const buffer = Buffer.concat(data)
           //console.log(buffer.toString())
           if (res2.statusCode >= 300 && res2.statusCode < 400) {
@@ -105,15 +108,22 @@ app.on('*', function(req, res) {
             resolve()
           } else if (res2.headers['content-type'] && res2.headers['content-type'].startsWith('text/html') || !res2.headers['content-type']) {
             let doc = new JSDOM(buffer.toString(), {url: 'gemini://replaceme/' + path})
-            let reader = new Readability(doc.window.document);
+            const domParseTime = process.hrtime(domParseTimeStart)
+            const readabilityTimeStart = process.hrtime()
+            let reader = new Readability(doc.window.document)
             let article = reader.parse()
             if (article !== null) {
               console.log('Article parse complete')
+              const readabilityTime = process.hrtime(readabilityTimeStart)
+              const geminifyTimeStart = process.hrtime()
               //console.log('Article:', article)
+              const geminified = geminify(article, reqInfo)
+              const geminifyTime = process.hrtime(geminifyTimeStart)
+              const statsText = '\n' + stats(startTime, reqCreateTime, responseTime, httpTime, readabilityTime, geminifyTime, totalLength, geminified.length)
               if (res2.statusCode == 200) {
-                res.data(geminify(article, reqInfo), mimeType='text/gemini')
+                res.data(geminified + statsText, mimeType='text/gemini')
               } else {
-                res.data('(' + messages.returnedCode + res2.statusCode + ')\n' + geminify(article, reqInfo), mimeType='text/gemini')
+                res.data('(' + messages.returnedCode + res2.statusCode + ')\n' + geminified + starsText, mimeType='text/gemini')
               }
               console.log('Returned response')
             } else {
