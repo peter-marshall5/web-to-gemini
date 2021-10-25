@@ -123,7 +123,7 @@ app.on('*', function(req, res) {
               if (res2.statusCode == 200) {
                 res.data(geminified + statsText, mimeType='text/gemini')
               } else {
-                res.data('(' + messages.returnedCode + res2.statusCode + ')\n' + geminified + starsText, mimeType='text/gemini')
+                res.data('(' + messages.returnedCode + res2.statusCode + ')\n' + geminified + statsText, mimeType='text/gemini')
               }
               console.log('Returned response')
             } else {
